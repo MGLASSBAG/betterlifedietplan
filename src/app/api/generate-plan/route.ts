@@ -1,17 +1,17 @@
-'use server';
+import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
 export const runtime = 'edge';
 
-import OpenAI from 'openai';
-
+// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function generateKetoPlan(formData: any) {
+export async function POST(request: NextRequest) {
   try {
-    // Debug log to see what's coming in
-    console.log('Form data received:', JSON.stringify(formData, null, 2));
+    const formData = await request.json();
+    console.log('Form data received in API route:', JSON.stringify(formData, null, 2));
     
     // Construct the prompt based on form data
     const prompt = `Create a personalized keto diet plan based on the following information:
@@ -36,23 +36,22 @@ export async function generateKetoPlan(formData: any) {
 
     Please provide a detailed 7-day meal plan with recipes, shopping list, and general guidelines. Format your response using markdown for better readability.`;
 
-    // Log the prompt being sent to OpenAI
-    console.log('Sending prompt to OpenAI:', prompt);
+    console.log('Sending prompt to OpenAI (API route):', prompt);
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4-turbo-preview",
     });
 
-    return {
+    return NextResponse.json({
       success: true,
       plan: completion.choices[0].message.content
-    };
+    });
   } catch (error) {
-    console.error('Error generating plan:', error);
-    return {
+    console.error('Error generating plan in API route:', error);
+    return NextResponse.json({
       success: false,
       error: 'Failed to generate plan'
-    };
+    }, { status: 500 });
   }
 } 

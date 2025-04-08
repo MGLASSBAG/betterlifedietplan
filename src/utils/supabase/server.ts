@@ -7,27 +7,29 @@ export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          // We need to cast to any because the type definitions expect a Promise,
-          // but Next.js cookies() API returns synchronously
-          return (cookieStore as any).get(name)?.value;
+        async get(name: string) {
+          const cookieList = await cookieStore;
+          return cookieList.get(name)?.value;
         },
-        set(name: string, value: string, options?: CookieOptions) {
+        async set(name: string, value: string, options?: CookieOptions) {
           try {
-            // We need to cast to any because the type definitions expect a Promise,
-            // but Next.js cookies() API sets synchronously
-            (cookieStore as any).set(name, value, options);
+            const cookieList = await cookieStore;
+            cookieList.set(name, value, options);
           } catch {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.
           }
         },
-        remove(name: string, options?: CookieOptions) {
+        async remove(name: string, options?: CookieOptions) {
           try {
-            // We need to cast to any because the type definitions expect a Promise,
-            // but Next.js cookies() API deletes synchronously
-            (cookieStore as any).delete(name, options);
+            const cookieList = await cookieStore;
+            // Next.js 15 cookies().delete() only accepts a single parameter
+            // Either just the name or an object with a name property
+            cookieList.delete({
+              name: name,
+              ...options
+            });
           } catch {
             // The `remove` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing

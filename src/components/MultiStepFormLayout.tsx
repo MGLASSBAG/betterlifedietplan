@@ -6,7 +6,6 @@ import { Toaster, toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { upsertProfileData } from '@/app/actions/profileActions';
-import { generateKetoPlan } from '@/app/actions/aiActions';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -80,7 +79,17 @@ const MultiStepFormLayout = () => {
       }
 
       toast.loading('Generating your plan...');
-      const planResult = await generateKetoPlan(formData);
+      
+      // Using the Edge API route instead of server action
+      const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const planResult = await response.json();
       toast.dismiss();
 
       if (planResult.success && planResult.plan) {

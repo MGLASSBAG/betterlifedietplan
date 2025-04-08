@@ -12,7 +12,7 @@ export default function AuthComponent() {
         supabaseClient={supabase}
         appearance={{ theme: ThemeSupa }}
         theme="light"
-        providers={['google', 'github']}
+        providers={[]} // Empty array to hide all social providers
         redirectTo="/dashboard" // Ensure this redirect path exists
       />
     </div>
