@@ -94,7 +94,11 @@ const MultiStepFormLayout = () => {
 
       if (planResult.success && planResult.plan) {
         // Store the plan in both localStorage and sessionStorage for persistence
-        const planData = { plan: planResult.plan, timestamp: new Date().toISOString() };
+        // Note: We're storing the raw JSON string for structured data
+        const planData = { 
+          plan: planResult.raw || JSON.stringify(planResult.plan), 
+          timestamp: new Date().toISOString() 
+        };
         localStorage.setItem('generatedPlan', JSON.stringify(planData));
         sessionStorage.setItem('generatedPlan', JSON.stringify(planData));
         
@@ -166,15 +170,6 @@ const MultiStepFormLayout = () => {
             </Button>
           )}
           {currentStep === 1 && <div className="mr-2" />}
-          {currentStep < totalSteps && (
-            <Button
-              onClick={nextStep}
-              className="ml-auto"
-              disabled={isPending || isLoadingPlan}
-            >
-              Next
-            </Button>
-          )}
           {currentStep === totalSteps && (
             <Button
               onClick={handleSubmit}

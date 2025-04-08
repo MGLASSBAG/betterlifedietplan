@@ -41,7 +41,7 @@ export async function generateKetoPlan(formData: any) {
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
     });
 
     return {

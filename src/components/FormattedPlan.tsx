@@ -32,7 +32,26 @@ const FormattedPlan: React.FC<FormattedPlanProps> = ({ content }) => {
     useEffect(() => {
         const parseContent = () => {
             try {
-                console.log("Raw content to parse:", content);
+                console.log("Content to parse:", typeof content === 'string' ? content.substring(0, 100) + "..." : content);
+                
+                // First check if content is already a structured object (JSON string)
+                try {
+                    // If it's a string that represents a JSON object
+                    if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('['))) {
+                        const parsedData = JSON.parse(content);
+                        
+                        // Check if it matches our MealPlan structure
+                        if (parsedData && Array.isArray(parsedData.days)) {
+                            console.log("Found pre-structured meal plan data");
+                            setParsedPlan(parsedData);
+                            return; // Exit early if we got structured data
+                        }
+                    }
+                } catch (jsonError) {
+                    console.log("Not valid JSON, continuing with regex parsing");
+                }
+                
+                // If we get here, treat as markdown text and parse using regex
                 
                 // Try to extract day sections using regex
                 const days = [];
