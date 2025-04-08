@@ -3,6 +3,7 @@
 import React from 'react';
 import { useFormStore } from '@/stores/formStore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 // Helper function to format array data for display
 const formatArray = (arr: string[] | undefined | null): string => {
@@ -45,6 +46,8 @@ const displayMappings = {
 const StepSummary = () => {
   // Get the complete form data from the store
   const formData = useFormStore((state) => state.formData);
+  // Get the handleSubmit function from MultiStepFormLayout via a central event handler
+  const handleGeneratePlan = useFormStore((state) => state.triggerSubmit);
 
   const renderMeasurement = (label: string, value: number | string | null | undefined, unit: string = '') => {
     return (
@@ -139,6 +142,13 @@ const StepSummary = () => {
         <p className="text-center text-sm text-gray-600 mt-4">
             Please review your selections carefully. You can use the "Back" button to make changes.
         </p>
+        
+        <Button 
+          onClick={handleGeneratePlan} 
+          className="w-full bg-red-600 hover:bg-red-700"
+        >
+          Generate My Plan
+        </Button>
     </div>
   );
 };

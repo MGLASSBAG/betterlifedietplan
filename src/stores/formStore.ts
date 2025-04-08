@@ -24,19 +24,23 @@ type FormState = {
   currentStep: number;
   totalSteps: number;
   formData: Partial<FormData>;
+  submitHandler: (() => void) | null;
   updateFormData: (data: Partial<FormData>) => void;
   nextStep: () => void;
   prevStep: () => void;
   resetForm: () => void;
+  triggerSubmit: () => void;
+  setSubmitHandler: (handler: (() => void) | null) => void;
 };
 
 const TOTAL_FORM_STEPS = 9;
 
 // Create the simple Zustand store
-export const useFormStore = create<FormState>((set) => ({
+export const useFormStore = create<FormState>((set, get) => ({
   currentStep: 1,
   totalSteps: TOTAL_FORM_STEPS,
   formData: {},
+  submitHandler: null,
   updateFormData: (data) => set((state) => ({
     formData: { ...state.formData, ...data }
   })),
@@ -49,5 +53,16 @@ export const useFormStore = create<FormState>((set) => ({
   resetForm: () => set({
     currentStep: 1,
     formData: {}
+  }),
+  triggerSubmit: () => {
+    const state = get();
+    if (state.submitHandler) {
+      state.submitHandler();
+    } else {
+      console.error("Submit handler not set");
+    }
+  },
+  setSubmitHandler: (handler: (() => void) | null) => set({
+    submitHandler: handler
   })
 }));

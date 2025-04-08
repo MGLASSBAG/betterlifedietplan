@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFormStore } from '@/stores/formStore';
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CheckIcon } from 'lucide-react'; // Import check icon
+import { Button } from "@/components/ui/button"; // Import Button component
 
 const ingredientOptions = [
   { id: 'none', label: 'I eat them all' },
@@ -39,6 +40,7 @@ export default function Step5Ingredients() {
   // Get data and update function from the store
   const formData = useFormStore(useCallback((state) => state.formData, []));
   const updateFormData = useFormStore(useCallback((state) => state.updateFormData, []));
+  const nextStep = useFormStore(useCallback((state) => state.nextStep, []));
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -75,9 +77,16 @@ export default function Step5Ingredients() {
     updateFormData({ disliked_ingredients: newSelection }); // Update Zustand
   };
 
+  const onSubmit = (data: FormData) => {
+    // Ensure data is saved to the store
+    updateFormData({ disliked_ingredients: data.disliked_ingredients });
+    // Move to the next step
+    nextStep();
+  };
+
   return (
     <Form {...form}>
-      <div className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} id="ingredients-form" className="space-y-4">
         <FormField
           control={form.control}
           name="disliked_ingredients"
@@ -113,7 +122,14 @@ export default function Step5Ingredients() {
             </FormItem>
           )}
         />
-      </div>
+        <Button 
+          type="submit"
+          className="w-full mt-6 bg-red-600 hover:bg-red-700"
+          disabled={form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? 'Processing...' : 'Continue'}
+        </Button>
+      </form>
     </Form>
   );
 } 

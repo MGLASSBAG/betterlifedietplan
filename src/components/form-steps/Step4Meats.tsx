@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-hot-toast";
 import { Label } from "@/components/ui/label";
 import { CheckIcon } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 const meatOptions = [
   { id: 'none', label: 'I eat all meats' },
@@ -39,7 +40,6 @@ const Step4Meats = () => {
   const updateFormData = useFormStore((state) => state.updateFormData);
   const nextStep = useFormStore((state) => state.nextStep);
   const user = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -79,24 +79,23 @@ const Step4Meats = () => {
     updateFormData({ disliked_meats: newSelection }); // Update Zustand
   };
 
-  async function onSubmit(data: FormData) {
-    if (!user) {
-      toast.error('You must be logged in.');
-      return;
-    }
-    setIsSubmitting(true);
-    // Ensure zustand has the final validated data before saving
+  const onSubmit = (data: FormData) => {
     updateFormData({ disliked_meats: data.disliked_meats }); 
+    nextStep(); // Always proceed to the next step
 
-    const result = await upsertProfileData(user.id, { disliked_meats: data.disliked_meats });
-
-    if (result.success) {
-      nextStep();
-    } else {
-      console.error("Failed to save Step 4 data:", result.error);
-      toast.error('Failed to save progress. Please try again.');
+    // Optionally save data if user is logged in (fire-and-forget, don't block UI)
+    if (user && user.id) {
+      upsertProfileData(user.id, { disliked_meats: data.disliked_meats })
+        .then(result => {
+          if (!result.success) {
+            console.error("Failed to save Step 4 data silently:", result.error);
+            // Maybe show a non-blocking toast later if needed
+          }
+        })
+        .catch(error => {
+           console.error("Error during silent save for Step 4:", error);
+        });
     }
-    setIsSubmitting(false);
   }
 
   return (
@@ -136,6 +135,13 @@ const Step4Meats = () => {
             </FormItem>
           )}
         />
+        <Button 
+          type="submit" 
+          className="w-full mt-6 bg-red-600 hover:bg-red-700"
+          disabled={form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? 'Processing...' : 'Continue'}
+        </Button>
       </form>
     </Form>
   );

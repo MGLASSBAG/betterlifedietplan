@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
 
 // Base Schema (Age and Units)
 const baseSchema = z.object({
@@ -46,6 +47,7 @@ type FormData = z.infer<typeof FormSchema>;
 export default function Step8Measurements() {
     const formData = useFormStore(useCallback((state) => state.formData, []));
     const updateFormData = useFormStore(useCallback((state) => state.updateFormData, []));
+    const nextStep = useFormStore(useCallback((state) => state.nextStep, []));
 
     const form = useForm<FormData>({
         resolver: zodResolver(FormSchema),
@@ -119,9 +121,15 @@ export default function Step8Measurements() {
         }
     };
 
+    const onSubmit = (data: FormData) => {
+        // Ensure final data is in store
+        updateFormData(data);
+        nextStep();
+    };
+
     return (
         <Form {...form}>
-            <div className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormLabel className="text-lg font-semibold">Measurements</FormLabel>
 
                 {/* Unit Toggle Group */}
@@ -292,8 +300,16 @@ export default function Step8Measurements() {
                         )}
                     />
                 </div>
-
-            </div>
+                
+                {/* Add Continue Button */}
+                <Button 
+                  type="submit" 
+                  className="w-full mt-6 bg-red-600 hover:bg-red-700"
+                  disabled={form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting ? 'Processing...' : 'Continue'}
+                </Button>
+            </form>
         </Form>
     );
 } 

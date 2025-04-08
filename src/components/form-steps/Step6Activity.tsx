@@ -79,7 +79,13 @@ export default function Step6Activity() {
             )}
           />
         </div>
-        <Button type="submit" className="w-full">Continue</Button>
+        <Button 
+          type="submit" 
+          className="w-full bg-red-600 hover:bg-red-700"
+          disabled={form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? 'Processing...' : 'Continue'}
+        </Button>
       </form>
     </Form>
   );

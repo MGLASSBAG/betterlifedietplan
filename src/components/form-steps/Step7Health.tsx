@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFormStore } from '@/stores/formStore';
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CheckIcon } from 'lucide-react'; // Import check icon
+import { Button } from "@/components/ui/button"; // Import Button component
 
 const healthOptions = [
     { id: 'none', label: 'None of the above' },
@@ -39,6 +40,7 @@ export default function Step7Health() {
   // Get data and update function from the store
   const formData = useFormStore(useCallback((state) => state.formData, []));
   const updateFormData = useFormStore(useCallback((state) => state.updateFormData, []));
+  const nextStep = useFormStore(useCallback((state) => state.nextStep, []));
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -46,8 +48,6 @@ export default function Step7Health() {
       health_conditions: formData.health_conditions || [],
     },
   });
-
-  // Remove useEffect hook
 
   const handleCheckboxChange = (
     checked: boolean | 'indeterminate',
@@ -77,9 +77,16 @@ export default function Step7Health() {
     updateFormData({ health_conditions: newSelection }); // Update Zustand
   };
 
+  const onSubmit = (data: FormData) => {
+    // Ensure data is saved to the store
+    updateFormData({ health_conditions: data.health_conditions });
+    // Move to the next step
+    nextStep();
+  };
+
   return (
     <Form {...form}>
-      <div className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} id="health-form" className="space-y-4">
         <FormField
           control={form.control}
           name="health_conditions"
@@ -115,7 +122,14 @@ export default function Step7Health() {
             </FormItem>
           )}
         />
-      </div>
+        <Button 
+          type="submit"
+          className="w-full mt-6 bg-red-600 hover:bg-red-700"
+          disabled={form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? 'Processing...' : 'Continue'}
+        </Button>
+      </form>
     </Form>
   );
 } 

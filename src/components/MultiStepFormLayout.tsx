@@ -60,6 +60,7 @@ const MultiStepFormLayout = () => {
   const nextStep = useFormStore((state) => state.nextStep);
   const prevStep = useFormStore((state) => state.prevStep);
   const resetForm = useFormStore((state) => state.resetForm);
+  const setSubmitHandler = useFormStore((state) => state.setSubmitHandler);
   
   const user = useAuth();
 
@@ -117,6 +118,14 @@ const MultiStepFormLayout = () => {
     }
   };
 
+  // Register the submit handler with the form store
+  useEffect(() => {
+    setSubmitHandler(handleSubmit);
+    
+    // Clean up on unmount
+    return () => setSubmitHandler(null);
+  }, [setSubmitHandler]); // Only when setSubmitHandler changes
+
   return (
     <div className="container mx-auto max-w-2xl p-6 bg-white rounded-lg shadow-xl">
       <Toaster position="top-center" />
@@ -170,7 +179,8 @@ const MultiStepFormLayout = () => {
             </Button>
           )}
           {currentStep === 1 && <div className="mr-2" />}
-          {currentStep === totalSteps && (
+          {/* Only show Generate My Plan button in bottom nav if we're NOT on the summary page */}
+          {currentStep === totalSteps && currentStep !== 9 && (
             <Button
               onClick={handleSubmit}
               className="ml-auto bg-red-600 hover:bg-red-700"
