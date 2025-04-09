@@ -66,6 +66,7 @@ const MultiStepFormLayout = () => {
 
   const handleSubmit = async () => {
     setRedirecting(false);
+    setIsLoading(true);
 
     try {
       if (user && user.id) {
@@ -127,11 +128,8 @@ const MultiStepFormLayout = () => {
     } catch (error: any) {
       console.error('Error during submission or plan generation:', error);
       toast.error(error.message || 'An error occurred. Please try again.');
-      setIsLoading(false);
     } finally {
-      if (!redirecting) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 

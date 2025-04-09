@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
     // Construct the prompt based on form data
     const userPrompt = `Create a highly personalized and detailed 7-day keto diet plan based STRICTLY on the user's information and the requirements below. Adhere precisely to the requested JSON schema output format using the 'generate_meal_plan' function.
 
+    **IMPORTANT: The plan MUST cover exactly 7 distinct days (Day 1 to Day 7). Do NOT provide fewer than 7 days.**
+
     User Information:
     - Gender: ${formData.gender || 'Not specified'}
     - Keto Familiarity: ${formData.familiarity || 'Not specified'}
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
     Plan Requirements:
     1.  **Introduction:** Provide a brief, encouraging overview of the plan and core keto principles.
     2.  **Guidelines:** Offer practical tips for success on the keto diet, tailored to the user if possible (e.g., based on familiarity).
-    3.  **Daily Plans (7 days):** For each day ('Day 1' to 'Day 7'):
+    3.  **Daily Plans (MUST BE 7 DAYS):** For each day ('Day 1' to 'Day 7'):
         *   Include Breakfast, Lunch, and Dinner meals.
         *   Include optional Snacks suggestions suitable for keto.
         *   For **each** meal (Breakfast, Lunch, Dinner) and optionally for snacks:
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
     5.  **Weekly Summary:** Calculate and provide a summary of the week's nutrition:
         *   Total and average daily values for Calories, Protein, Fat, and Net Carbs.
 
-    **Output Format:** Generate the response strictly following the JSON schema provided in the 'generate_meal_plan' function call. Ensure all required fields are present and data types match the schema. Use markdown formatting within string fields where appropriate (recipes, lists, guidelines).`;
+    **Output Format:** Generate the response strictly following the JSON schema provided in the 'generate_meal_plan' function call. Ensure all required fields are present and data types match the schema. Use markdown formatting within string fields where appropriate (recipes, lists, guidelines). **Ensure the 'days' array contains exactly 7 elements.**`;
 
     console.log('Sending detailed prompt to OpenAI with updated function calling schema');
 

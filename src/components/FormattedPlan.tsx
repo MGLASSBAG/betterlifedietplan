@@ -240,6 +240,31 @@ const FormattedPlan: React.FC<FormattedPlanProps> = ({ content }) => {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Weekly Summary Section (Moved Up) */}
+            {parsedPlan.weeklySummary && (
+                <Card className="transition-shadow hover:shadow-md">
+                    <CardHeader className="bg-purple-100">
+                        <CardTitle className="text-purple-900 flex items-center gap-2">
+                            <BarChart3 size={20}/> Weekly Nutrition Summary
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 text-sm space-y-2 text-gray-800">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div><span className="font-semibold">Avg Daily Calories:</span> {parsedPlan.weeklySummary.averageDailyCalories || 'N/A'}</div>
+                            <div><span className="font-semibold">Avg Daily Protein:</span> {parsedPlan.weeklySummary.averageDailyProtein || 'N/A'}</div>
+                            <div><span className="font-semibold">Avg Daily Fat:</span> {parsedPlan.weeklySummary.averageDailyFat || 'N/A'}</div>
+                            <div><span className="font-semibold">Avg Daily Net Carbs:</span> {parsedPlan.weeklySummary.averageDailyCarbs || 'N/A'}</div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t">
+                             <div><span className="font-semibold">Total Calories:</span> {parsedPlan.weeklySummary.totalCalories || 'N/A'}</div>
+                            <div><span className="font-semibold">Total Protein:</span> {parsedPlan.weeklySummary.totalProtein || 'N/A'}</div>
+                            <div><span className="font-semibold">Total Fat:</span> {parsedPlan.weeklySummary.totalFat || 'N/A'}</div>
+                            <div><span className="font-semibold">Total Net Carbs:</span> {parsedPlan.weeklySummary.totalCarbs || 'N/A'}</div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
             
             {/* Daily Meal Plans */}
             <div className="space-y-4"> {/* Reduced space between day cards */} 
@@ -331,31 +356,6 @@ const FormattedPlan: React.FC<FormattedPlanProps> = ({ content }) => {
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {parsedPlan.guidelines}
                         </ReactMarkdown>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Weekly Summary Section */}
-            {parsedPlan.weeklySummary && (
-                <Card className="transition-shadow hover:shadow-md">
-                    <CardHeader className="bg-purple-100">
-                        <CardTitle className="text-purple-900 flex items-center gap-2">
-                            <BarChart3 size={20}/> Weekly Nutrition Summary
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 text-sm space-y-2 text-gray-800">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div><span className="font-semibold">Avg Daily Calories:</span> {parsedPlan.weeklySummary.averageDailyCalories || 'N/A'}</div>
-                            <div><span className="font-semibold">Avg Daily Protein:</span> {parsedPlan.weeklySummary.averageDailyProtein || 'N/A'}</div>
-                            <div><span className="font-semibold">Avg Daily Fat:</span> {parsedPlan.weeklySummary.averageDailyFat || 'N/A'}</div>
-                            <div><span className="font-semibold">Avg Daily Net Carbs:</span> {parsedPlan.weeklySummary.averageDailyCarbs || 'N/A'}</div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t">
-                             <div><span className="font-semibold">Total Calories:</span> {parsedPlan.weeklySummary.totalCalories || 'N/A'}</div>
-                            <div><span className="font-semibold">Total Protein:</span> {parsedPlan.weeklySummary.totalProtein || 'N/A'}</div>
-                            <div><span className="font-semibold">Total Fat:</span> {parsedPlan.weeklySummary.totalFat || 'N/A'}</div>
-                            <div><span className="font-semibold">Total Net Carbs:</span> {parsedPlan.weeklySummary.totalCarbs || 'N/A'}</div>
-                        </div>
                     </CardContent>
                 </Card>
             )}
