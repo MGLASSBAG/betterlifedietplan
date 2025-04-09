@@ -25,6 +25,7 @@ const MultiStepFormLayout = () => {
   const [isPending, startTransition] = useTransition();
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [redirecting, setRedirecting] = useState(false);
   
   // Loading messages to display during plan generation
   const loadingMessages = [
@@ -104,7 +105,12 @@ const MultiStepFormLayout = () => {
         sessionStorage.setItem('generatedPlan', JSON.stringify(planData));
         
         toast.success('Plan generated successfully!');
-        router.push('/results');
+        setRedirecting(true);
+        
+        // Small timeout to allow toast to show before redirecting
+        setTimeout(() => {
+          router.push('/results');
+        }, 800);
       } else {
          throw new Error(planResult.error || 'Failed to generate plan content.');
       }
@@ -162,9 +168,9 @@ const MultiStepFormLayout = () => {
         <div className="mt-6 flex flex-col items-center">
           <Button disabled className="mb-2">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating your personalized plan...
+            {redirecting ? 'Redirecting to your results...' : 'Generating your personalized plan...'}
           </Button>
-          <p className="text-sm text-gray-600 animate-pulse">{loadingMessage}</p>
+          <p className="text-sm text-gray-600 animate-pulse">{redirecting ? 'Almost there!' : loadingMessage}</p>
         </div>
       ) : (
         <div className="mt-6 flex justify-between">

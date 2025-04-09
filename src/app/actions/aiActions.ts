@@ -34,7 +34,33 @@ export async function generateKetoPlan(formData: any) {
       Target Weight: ${formData.target_weight_lbs || 'Not specified'} lbs`
     }
 
-    Please provide a detailed 7-day meal plan with recipes, shopping list, and general guidelines. Format your response using markdown for better readability.`;
+    Please provide a detailed 7-day meal plan with the following components:
+    
+    1. Introduction: Brief overview of the plan and its benefits
+    2. For each day (Day 1 through Day 7), include:
+       - Breakfast, Lunch, Dinner, and optional Snacks
+       - For EACH meal, include:
+         * A detailed recipe with complete ingredients list (with measurements)
+         * Step-by-step cooking instructions
+    3. Shopping List: Comprehensive list of all ingredients needed for the week
+    4. Guidelines: General tips for following a keto diet
+
+    Format the meal plan using clear markdown headers. For each recipe, use the following structure:
+    
+    ## Day X
+    
+    ### Breakfast
+    [Brief description of the meal]
+    
+    #### Ingredients
+    [List all ingredients with measurements]
+    
+    #### Instructions
+    [Step-by-step cooking instructions]
+    
+    [Repeat similar format for Lunch and Dinner]
+    
+    Format your response using markdown for better readability.`;
 
     // Log the prompt being sent to OpenAI
     console.log('Sending prompt to OpenAI:', prompt);
