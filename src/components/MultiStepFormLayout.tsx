@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState, useTransition, useEffect, useRef } from 'react';
 import { useFormStore } from '@/stores/formStore';
 import { Toaster, toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -24,6 +24,10 @@ const MultiStepFormLayout = () => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Reference to the current step's submit function
+  const stepSubmitRef = useRef<(() => Promise<boolean>) | null>(null);
   
   // Use the simplified store
   const currentStep = useFormStore((state) => state.currentStep);
@@ -37,6 +41,28 @@ const MultiStepFormLayout = () => {
   const setIsLoading = useFormStore((state) => state.setIsLoading);
   
   const user = useAuth();
+
+  // Set step submit handler
+  const setStepSubmitHandler = (handler: () => Promise<boolean>) => {
+    stepSubmitRef.current = handler;
+  };
+  
+  // Continue to the next step or submit on final step
+  const handleContinue = async () => {
+    if (stepSubmitRef.current) {
+      setIsSubmitting(true);
+      try {
+        const validationSuccess = await stepSubmitRef.current();
+        if (!validationSuccess) {
+          setIsSubmitting(false);
+        }
+      } catch (error) {
+        console.error("Error during step submission:", error);
+        toast.error("An unexpected error occurred.");
+        setIsSubmitting(false);
+      }
+    }
+  };
 
   const handleSubmit = async () => {
     setRedirecting(false);
@@ -115,13 +141,18 @@ const MultiStepFormLayout = () => {
     return () => setSubmitHandler(null);
   }, [setSubmitHandler, formData, user]);
 
+  // Reset submission state when changing steps
+  useEffect(() => {
+    setIsSubmitting(false);
+  }, [currentStep]);
+
   return (
-    <div className="container mx-auto max-w-2xl p-6 bg-white rounded-lg shadow-xl">
+    <div className="container mx-auto max-w-2xl p-4 sm:p-6 bg-white rounded-lg shadow-xl">
       <Toaster position="top-center" />
-      <div className="text-center text-2xl font-bold text-red-600 mb-6">BetterLifeDietPlan</div>
+      <div className="text-center text-xl sm:text-2xl font-bold text-red-600 mb-4 sm:mb-6">BetterLifeDietPlan</div>
 
       {currentStep <= totalSteps && !isLoading && (
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <div className="flex justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Step {currentStep} of {totalSteps}</span>
             <span className="text-sm font-medium text-gray-700">{Math.round((currentStep / totalSteps) * 100)}%</span>
@@ -136,30 +167,51 @@ const MultiStepFormLayout = () => {
       )}
 
       <div className="space-y-6">
-        {currentStep === 1 && <Step1Gender />}
-        {currentStep === 2 && <Step2Familiarity />}
-        {currentStep === 3 && <Step3PrepTime />}
-        {currentStep === 4 && <Step4Meats />}
-        {currentStep === 5 && <Step5Ingredients />}
-        {currentStep === 6 && <Step6Activity />}
-        {currentStep === 7 && <Step7Health />}
-        {currentStep === 8 && <Step8Measurements />}
-        {currentStep === 9 && <StepSummary />}
+        {currentStep === 1 && <Step1Gender setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 2 && <Step2Familiarity setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 3 && <Step3PrepTime setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 4 && <Step4Meats setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 5 && <Step5Ingredients setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 6 && <Step6Activity setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 7 && <Step7Health setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 8 && <Step8Measurements setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
+        {currentStep === 9 && <StepSummary setSubmitHandler={setStepSubmitHandler} isSubmitting={isSubmitting} />}
       </div>
 
       {!isLoading && (
-        <div className="mt-6 flex justify-between">
-          {currentStep > 1 && currentStep <= totalSteps && (
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              className="mr-2"
-              disabled={isPending || isLoading}
-            >
-              Previous
-            </Button>
-          )}
-          {currentStep <= 1 && <div className="flex-grow" />}
+        <div className="mt-6 flex flex-col sm:flex-row justify-between sm:space-x-4 space-y-3 sm:space-y-0">
+          {/* Previous Button - Show on steps 2-9 */}
+          <div className="w-full sm:w-auto">
+            {currentStep > 1 && currentStep <= totalSteps && (
+              <Button
+                variant="outline"
+                onClick={prevStep}
+                className="w-full sm:w-auto"
+                disabled={isPending || isLoading || isSubmitting}
+              >
+                Previous
+              </Button>
+            )}
+            {currentStep <= 1 && <div className="flex-grow sm:hidden" />}
+          </div>
+          
+          {/* Continue/Generate Button */}
+          <div className="w-full sm:w-auto">
+             <Button 
+                type="button" 
+                onClick={handleContinue} 
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 flex items-center justify-center"
+                disabled={isPending || isLoading || isSubmitting}
+              >
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {isSubmitting 
+                    ? (currentStep === 9 ? 'Generating...' : 'Processing...') 
+                    : (currentStep === 9 ? 'Generate My Plan' : 'Continue')
+                }
+              </Button>
+          </div>
         </div>
       )}
     </div>

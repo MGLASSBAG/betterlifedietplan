@@ -39,36 +39,36 @@ const LoadingStatus: React.FC = () => {
     }, []); // Empty dependency array ensures this runs only once when the component mounts
 
     return (
-        <Card className="w-full max-w-md mx-auto my-8 shadow-lg animate-pulse-slow">
-            <CardHeader>
-                <CardTitle className="text-center text-lg font-semibold text-red-700">
+        <Card className="w-full max-w-md mx-auto my-4 sm:my-8 shadow-lg animate-pulse-slow p-4 sm:p-6">
+            <CardHeader className="p-2 sm:p-4">
+                <CardTitle className="text-center text-base sm:text-lg font-semibold text-red-700">
                     Generating Your Keto Plan...
                 </CardTitle>
             </CardHeader>
-            <CardContent>
-                <ul className="space-y-4">
+            <CardContent className="p-2 sm:p-4">
+                <ul className="space-y-3 sm:space-y-4">
                     {stages.map((stage, index) => {
                         const isActive = index === currentStageIndex;
                         const isDone = index < currentStageIndex;
                         const Icon = stage.icon;
 
                         return (
-                            <li key={index} className={`flex items-center space-x-3 transition-opacity duration-500 ${isDone ? 'opacity-60' : 'opacity-100'}`}>
+                            <li key={index} className={`flex items-center space-x-2 sm:space-x-3 transition-opacity duration-500 ${isDone ? 'opacity-60' : 'opacity-100'}`}>
                                 {isDone ? (
-                                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
                                 ) : isActive ? (
-                                    <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />
+                                    <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 animate-spin flex-shrink-0" />
                                 ) : (
-                                    <Icon className="h-5 w-5 text-gray-400 flex-shrink-0" /> // Future stages icon
+                                    <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" /> // Future stages icon
                                 )}
-                                <span className={`text-sm ${isDone ? 'text-gray-500 line-through' : isActive ? 'font-semibold text-blue-700' : 'text-gray-400'}`}>
+                                <span className={`text-xs sm:text-sm ${isDone ? 'text-gray-500 line-through' : isActive ? 'font-semibold text-blue-700' : 'text-gray-400'}`}>
                                     {stage.text}
                                 </span>
                             </li>
                         );
                     })}
                 </ul>
-                <p className="text-xs text-center text-gray-500 mt-6">
+                <p className="text-xs text-center text-gray-500 mt-4 sm:mt-6">
                     This may take a moment, especially for detailed plans. Please wait.
                 </p>
             </CardContent>

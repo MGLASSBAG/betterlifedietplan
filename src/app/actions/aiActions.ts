@@ -18,10 +18,16 @@ export async function generateKetoPlan(formData: any) {
     Gender: ${formData.gender || 'Not specified'}
     Keto Familiarity: ${formData.familiarity || 'Not specified'}
     Prep Time Preference: ${formData.prep_time || 'Not specified'}
-    Disliked Meats: ${Array.isArray(formData.disliked_meats) ? formData.disliked_meats.join(', ') : 'None'}
-    Disliked Ingredients: ${Array.isArray(formData.disliked_ingredients) ? formData.disliked_ingredients.join(', ') : 'None'}
+    Disliked Meats: ${Array.isArray(formData.disliked_meats) 
+      ? formData.disliked_meats.map((m: string) => m === 'other' && formData.other_meat_description ? `Other (${formData.other_meat_description})` : m).join(', ') 
+      : 'None'}
+    Disliked Ingredients: ${Array.isArray(formData.disliked_ingredients) 
+      ? formData.disliked_ingredients.map((i: string) => i === 'other' && formData.other_ingredient_description ? `Other (${formData.other_ingredient_description})` : i).join(', ') 
+      : 'None'}
     Activity Level: ${formData.activity_level || 'Not specified'}
-    Health Conditions: ${Array.isArray(formData.health_conditions) ? formData.health_conditions.join(', ') : 'None'}
+    Health Conditions: ${Array.isArray(formData.health_conditions) 
+      ? formData.health_conditions.map((h: string) => h === 'other' && formData.other_health_description ? `Other (${formData.other_health_description})` : h).join(', ') 
+      : 'None'}
     Age: ${formData.age || 'Not specified'}
     Units: ${formData.units || 'Not specified'}
     ${formData.units === 'metric' ? 

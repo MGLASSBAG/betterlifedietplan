@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default async function Home() {
   const cookieStore = cookies();
@@ -11,21 +12,21 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-12">Welcome to Better Life Diet Plan</h1>
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 sm:p-12 lg:p-24">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-8 sm:mb-12 text-center">Welcome to Better Life Diet Plan</h1>
       
-      <div className="flex space-x-4 mb-8">
+      <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-8 items-center">
         {user ? (
           <Link href="/dashboard">
-            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <Button size="lg">
               Go to Dashboard
-            </button>
+            </Button>
           </Link>
         ) : (
           <Link href="/login">
-            <button className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+            <Button size="lg" variant="default" className="bg-green-600 hover:bg-green-700">
               Login / Sign Up
-            </button>
+            </Button>
           </Link>
         )}
       </div>

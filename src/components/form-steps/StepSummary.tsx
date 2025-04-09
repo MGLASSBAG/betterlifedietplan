@@ -1,22 +1,39 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFormStore } from '@/stores/formStore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import LoadingStatus from '../LoadingStatus';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "react-hot-toast";
 
-// Helper function to format array data for display
-const formatArray = (arr: string[] | undefined | null): string => {
+// Helper function to format array data, including 'other' description
+const formatArrayWithOther = (
+    arr: string[] | undefined | null, 
+    otherDesc: string | undefined | null,
+    otherId: string = 'other' // ID used for the 'other' option
+): string => {
   if (!arr || arr.length === 0) return 'None specified';
-  if (arr.includes('none')) return 'None specified / All included';
-  if (arr.includes('vegetarian') && arr.length === 1) return 'Vegetarian'; // Specific case for meats
-  // Filter out 'none' if other items are present
-  const filteredArr = arr.filter(item => item !== 'none');
-  // Capitalize first letter of each item (optional)
-  return filteredArr.map(item => item.charAt(0).toUpperCase() + item.slice(1).replace(/_/g, ' ')).join(', ');
+  
+  let displayItems = arr
+    .filter(item => item !== 'none') // Filter out 'none' if other items are present
+    .map(item => {
+        if (item === otherId && otherDesc && otherDesc.trim()) {
+            return `Other (${otherDesc.trim()})`; // Include description
+        }
+        // Simple capitalization, adjust as needed
+        return item.charAt(0).toUpperCase() + item.slice(1).replace(/_/g, ' '); 
+    });
+
+  if (displayItems.length === 0) {
+      // If only 'none' was selected originally, or filtering left nothing
+      return 'None specified / All included';
+  }
+  
+  if (arr.includes('vegetarian') && arr.length === 1) return 'Vegetarian'; // Specific case for meats remains
+
+  return displayItems.join(', ');
 };
 
 // Helper mapping for display labels (similar to PHP)
@@ -46,12 +63,15 @@ const displayMappings = {
     },
 };
 
-const StepSummary = () => {
-  // Get data and actions from the store
+type StepSummaryProps = {
+  setSubmitHandler: (handler: () => Promise<boolean>) => void;
+  isSubmitting: boolean;
+};
+
+const StepSummary = ({ setSubmitHandler, isSubmitting }: StepSummaryProps) => {
   const formData = useFormStore((state) => state.formData);
-  const triggerSubmit = useFormStore((state) => state.triggerSubmit); 
+  const triggerSubmit = useFormStore((state) => state.triggerSubmit);
   const isLoading = useFormStore((state) => state.isLoading);
-  const setIsLoading = useFormStore((state) => state.setIsLoading);
   const [error, setError] = useState<string | null>(null);
 
   const renderMeasurement = (label: string, value: number | string | null | undefined, unit: string = '') => {
@@ -65,9 +85,15 @@ const StepSummary = () => {
 
   const handleGenerateClick = () => {
     setError(null);
-    setIsLoading(true);
     triggerSubmit(); 
   };
+
+  useEffect(() => {
+    setSubmitHandler(async () => {
+      handleGenerateClick();
+      return true;
+    });
+  }, [setSubmitHandler, handleGenerateClick]);
 
   if (isLoading) {
     return <LoadingStatus />;
@@ -111,15 +137,21 @@ const StepSummary = () => {
              <dl className="divide-y divide-gray-200">
                 <div className="py-2">
                  <dt className="text-sm font-medium text-gray-600 mb-1">Meats Disliked</dt>
-                 <dd className="text-sm text-gray-900">{formatArray(formData.disliked_meats)}</dd>
+                 <dd className="text-sm text-gray-900">
+                   {formatArrayWithOther(formData.disliked_meats, formData.other_meat_description)}
+                 </dd>
                </div>
                 <div className="py-2">
                  <dt className="text-sm font-medium text-gray-600 mb-1">Ingredients Disliked</dt>
-                 <dd className="text-sm text-gray-900">{formatArray(formData.disliked_ingredients)}</dd>
+                 <dd className="text-sm text-gray-900">
+                    {formatArrayWithOther(formData.disliked_ingredients, formData.other_ingredient_description)}
+                 </dd>
                </div>
                 <div className="py-2">
                  <dt className="text-sm font-medium text-gray-600 mb-1">Health Conditions</dt>
-                 <dd className="text-sm text-gray-900">{formatArray(formData.health_conditions)}</dd>
+                 <dd className="text-sm text-gray-900">
+                   {formatArrayWithOther(formData.health_conditions, formData.other_health_description)}
+                 </dd>
                </div>
              </dl>
           </CardContent>
@@ -157,14 +189,6 @@ const StepSummary = () => {
         <p className="text-center text-sm text-gray-600 mt-4">
             Please review your selections carefully. You can use the "Back" button to make changes.
         </p>
-        
-        <Button 
-          onClick={handleGenerateClick} 
-          className="w-full bg-red-600 hover:bg-red-700"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Generating...' : 'Generate My Plan'}
-        </Button>
     </div>
   );
 };

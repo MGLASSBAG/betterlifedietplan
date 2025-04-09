@@ -14,7 +14,8 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useFormStore } from "@/stores/formStore";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { toast } from "react-hot-toast";
 
 // Define Zod schema for this step's data
 const genderSchema = z.object({
@@ -30,9 +31,12 @@ const genderOptions = [
     { value: "male", label: "Male" },
 ];
 
+type Step1GenderProps = {
+  setSubmitHandler: (handler: () => Promise<boolean>) => void;
+  isSubmitting: boolean;
+};
 
-export default function Step1Gender() {
-  // Use the simplified store
+export default function Step1Gender({ setSubmitHandler, isSubmitting }: Step1GenderProps) {
   const formData = useFormStore((state) => state.formData);
   const updateFormData = useFormStore((state) => state.updateFormData);
   const nextStep = useFormStore((state) => state.nextStep);
@@ -40,16 +44,35 @@ export default function Step1Gender() {
   const form = useForm<GenderFormData>({
     resolver: zodResolver(genderSchema),
     defaultValues: { gender: formData.gender || undefined },
+    mode: 'onChange',
   });
 
-  const onSubmit = (data: GenderFormData) => {
+  const handleValidSubmit = (data: GenderFormData) => {
     updateFormData({ gender: data.gender });
     nextStep();
   };
 
+  useEffect(() => {
+    setSubmitHandler(async () => {
+      const isValid = await form.trigger();
+      if (isValid) {
+        await form.handleSubmit(handleValidSubmit)();
+        return true;
+      } else {
+        const errorField = Object.keys(form.formState.errors)[0] as keyof GenderFormData;
+        if (errorField && form.formState.errors[errorField]?.message) {
+           toast.error(form.formState.errors[errorField]?.message ?? "Please fix the errors.");
+        } else {
+           toast.error("Please select an option.");
+        }
+        return false;
+      }
+    });
+  }, [setSubmitHandler, form, handleValidSubmit]);
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6">
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -60,23 +83,23 @@ export default function Step1Gender() {
                 <FormControl>
                   <RadioGroup
                     onValueChange={(value) => {
-                      // Update RHF state first
                       field.onChange(value);
-                      // Then update Zustand store directly
-                      if (value) { // Ensure value is valid before updating
-                        updateFormData({ gender: value as 'male' | 'female' });
-                      }
                     }}
-                    value={field.value} // Controlled by RHF
+                    value={field.value}
                     className="flex flex-col space-y-3"
+                    disabled={isSubmitting}
                   >
                     {genderOptions.map((option) => (
                       <Label 
                         key={option.value}
                         htmlFor={`gender-${option.value}`}
-                        className="flex items-center space-x-3 p-4 border rounded-md cursor-pointer hover:bg-accent transition-colors has-[input:checked]:border-primary has-[input:checked]:bg-primary/10"
+                        className={`flex items-center space-x-3 p-4 border rounded-md transition-colors ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-accent has-[input:checked]:border-primary has-[input:checked]:bg-primary/10'}`}
                       >
-                        <RadioGroupItem value={option.value} id={`gender-${option.value}`} />
+                        <RadioGroupItem 
+                          value={option.value} 
+                          id={`gender-${option.value}`} 
+                          disabled={isSubmitting}
+                        />
                         <span className="font-normal">{option.label}</span>
                       </Label>
                     ))}
@@ -87,13 +110,6 @@ export default function Step1Gender() {
             )}
           />
         </div>
-        <Button 
-          type="submit" 
-          className="w-full bg-red-600 hover:bg-red-700"
-          disabled={form.formState.isSubmitting}
-        >
-          {form.formState.isSubmitting ? 'Processing...' : 'Continue'}
-        </Button>
       </form>
     </Form>
   );

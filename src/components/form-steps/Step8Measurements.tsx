@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Button } from "@/components/ui/button";
+import { toast } from "react-hot-toast";
 
 // Base Schema (Age and Units)
 const baseSchema = z.object({
@@ -44,92 +44,94 @@ const FormSchema = z.discriminatedUnion('units', [
 
 type FormData = z.infer<typeof FormSchema>;
 
-export default function Step8Measurements() {
+type Step8MeasurementsProps = {
+  setSubmitHandler: (handler: () => Promise<boolean>) => void;
+  isSubmitting: boolean;
+};
+
+export default function Step8Measurements({ setSubmitHandler, isSubmitting }: Step8MeasurementsProps) {
     const formData = useFormStore(useCallback((state) => state.formData, []));
     const updateFormData = useFormStore(useCallback((state) => state.updateFormData, []));
     const nextStep = useFormStore(useCallback((state) => state.nextStep, []));
 
     const form = useForm<FormData>({
         resolver: zodResolver(FormSchema),
-        // Initialize based on store data OR default to metric
         defaultValues: {
-            units: formData.units || 'metric',
-            age: formData.age || undefined,
-            // Conditionally set defaults based on stored unit
-            ...(formData.units === 'metric' ? {
-                height_cm: formData.height_cm || undefined,
-                current_weight_kg: formData.current_weight_kg || undefined,
-                target_weight_kg: formData.target_weight_kg || undefined,
-                height_ft: undefined, // Clear other unit defaults
-                height_in: undefined,
-                current_weight_lbs: undefined,
-                target_weight_lbs: undefined,
-            } : formData.units === 'imperial' ? {
-                height_ft: formData.height_ft || undefined,
-                height_in: formData.height_in || undefined,
-                current_weight_lbs: formData.current_weight_lbs || undefined,
-                target_weight_lbs: formData.target_weight_lbs || undefined,
-                height_cm: undefined, // Clear other unit defaults
-                current_weight_kg: undefined,
-                target_weight_kg: undefined,
-            } : { // Default case (no units stored yet, assume metric)
-                units: 'metric', 
-                height_cm: undefined,
-                current_weight_kg: undefined,
-                target_weight_kg: undefined,
-            }),
+             units: formData.units || 'metric',
+             age: formData.age || undefined,
+             ...(formData.units === 'metric' ? {
+                 height_cm: formData.height_cm || undefined,
+                 current_weight_kg: formData.current_weight_kg || undefined,
+                 target_weight_kg: formData.target_weight_kg || undefined,
+                 height_ft: undefined, height_in: undefined, current_weight_lbs: undefined, target_weight_lbs: undefined,
+             } : formData.units === 'imperial' ? {
+                 height_ft: formData.height_ft || undefined,
+                 height_in: formData.height_in || undefined,
+                 current_weight_lbs: formData.current_weight_lbs || undefined,
+                 target_weight_lbs: formData.target_weight_lbs || undefined,
+                 height_cm: undefined, current_weight_kg: undefined, target_weight_kg: undefined,
+             } : {
+                 units: 'metric', height_cm: undefined, current_weight_kg: undefined, target_weight_kg: undefined,
+             }),
         },
-        mode: 'onChange', // Validate on change for better UX with inputs
+        mode: 'onChange',
     });
 
-    // Get the current unit value from the form state
     const selectedUnit = form.watch('units');
 
-    // Update Zustand store whenever form data changes and is valid
+    // Update Zustand store whenever form data changes (validation handled by RHF)
     useEffect(() => {
         const subscription = form.watch((value) => {
-             FormSchema.safeParseAsync(value).then(result => {
-                if (result.success) {
-                    // Only update zustand if data has meaningfully changed
-                    const currentState = useFormStore.getState().formData || {};
-                    // Basic check - could use deep compare if needed
-                    if (JSON.stringify(currentState) !== JSON.stringify(result.data)) {
-                         updateFormData(result.data);
-                    }
-                } // else: let RHF handle showing validation errors
-            });
+            updateFormData(value);
         });
         return () => subscription.unsubscribe();
-    }, [form, updateFormData]); // Depend on form object and update function
+    }, [form.watch, updateFormData]); // Depend on watch function
 
-    // Handle unit switching: Update RHF, clear unused fields, trigger validation
     const handleUnitChange = (newUnit: 'metric' | 'imperial') => {
-        if (!newUnit) return; // Prevent issues if value is empty
-
-        form.setValue('units', newUnit, { shouldValidate: true }); // Update RHF field state
-        
-        // Clear the values for the *other* unit system
+        if (!newUnit) return;
+        form.setValue('units', newUnit, { shouldValidate: true });
         if (newUnit === 'metric') {
-            form.setValue('height_ft', null as any);
-            form.setValue('height_in', null as any);
-            form.setValue('current_weight_lbs', null as any);
-            form.setValue('target_weight_lbs', null as any);
+            form.setValue('height_ft', null as any); form.setValue('height_in', null as any);
+            form.setValue('current_weight_lbs', null as any); form.setValue('target_weight_lbs', null as any);
         } else {
-            form.setValue('height_cm', null as any);
-            form.setValue('current_weight_kg', null as any);
+            form.setValue('height_cm', null as any); form.setValue('current_weight_kg', null as any);
             form.setValue('target_weight_kg', null as any);
         }
+        // Trigger validation for the whole form after clearing
+        form.trigger(); 
     };
 
-    const onSubmit = (data: FormData) => {
-        // Ensure final data is in store
-        updateFormData(data);
+    // This function is called ONLY if validation passes
+    const handleValidSubmit = (data: FormData) => {
+        updateFormData(data); // Ensure final data is in store
         nextStep();
     };
+    
+    // Register the validation/submit handler with the parent component
+    useEffect(() => {
+        setSubmitHandler(async () => {
+          const isValid = await form.trigger();
+          if (isValid) {
+            await form.handleSubmit(handleValidSubmit)();
+            return true;
+          } else {
+            // Show a general toast or specific errors
+            const errors = form.formState.errors;
+            let errorMessage = "Please correct the errors in the form.";
+            // Example: find the first error message
+            const firstErrorKey = Object.keys(errors)[0] as keyof FormData;
+            if (firstErrorKey && errors[firstErrorKey]?.message) {
+                errorMessage = errors[firstErrorKey]?.message ?? errorMessage;
+            }
+            toast.error(errorMessage);
+            return false;
+          }
+        });
+    }, [setSubmitHandler, form, handleValidSubmit]);
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form className="space-y-6">
                 <FormLabel className="text-lg font-semibold">Measurements</FormLabel>
 
                 {/* Unit Toggle Group */}
@@ -144,15 +146,25 @@ export default function Step8Measurements() {
                                     type="single"
                                     value={field.value}
                                     onValueChange={(value: 'metric' | 'imperial') => {
-                                        field.onChange(value); // Update RHF field state
-                                        handleUnitChange(value); // Perform unit switching logic
+                                        if (value) { handleUnitChange(value); }
                                     }}
                                     className="border rounded-md overflow-hidden"
+                                    disabled={isSubmitting}
                                 >
-                                    <ToggleGroupItem value="metric" aria-label="Metric units" className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                                    <ToggleGroupItem 
+                                      value="metric" 
+                                      aria-label="Metric units" 
+                                      className={`px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground ${isSubmitting ? 'cursor-not-allowed opacity-50' : ''}`}
+                                      disabled={isSubmitting}
+                                    >
                                         Metric
                                     </ToggleGroupItem>
-                                    <ToggleGroupItem value="imperial" aria-label="Imperial units" className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                                    <ToggleGroupItem 
+                                      value="imperial" 
+                                      aria-label="Imperial units" 
+                                      className={`px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground ${isSubmitting ? 'cursor-not-allowed opacity-50' : ''}`}
+                                      disabled={isSubmitting}
+                                     >
                                         Imperial
                                     </ToggleGroupItem>
                                 </ToggleGroup>
@@ -170,15 +182,21 @@ export default function Step8Measurements() {
                         <FormItem>
                             <FormLabel>Age</FormLabel>
                             <FormControl>
-                                {/* Ensure input type is "number" for coercing */}
-                                <Input type="number" placeholder="Your age" {...field} value={field.value ?? ''} />
+                                <Input 
+                                  type="number" 
+                                  placeholder="Your age" 
+                                  {...field} 
+                                  value={field.value ?? ''} 
+                                  disabled={isSubmitting}
+                                  className={isSubmitting ? 'bg-gray-100' : ''}
+                                 />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                {/* Metric Fields */} 
+                {/* Metric Fields */}
                 <div className={cn("space-y-4", selectedUnit !== 'metric' && "hidden")}>
                     <FormField
                         control={form.control}
@@ -188,7 +206,15 @@ export default function Step8Measurements() {
                                 <FormLabel>Height</FormLabel>
                                 <FormControl>
                                     <div className="relative">
-                                        <Input type="number" placeholder="e.g., 175" {...field} value={field.value ?? ''} required={selectedUnit === 'metric'} />
+                                        <Input 
+                                          type="number" 
+                                          placeholder="e.g., 175" 
+                                          {...field} 
+                                          value={field.value ?? ''} 
+                                          required={selectedUnit === 'metric'} 
+                                          disabled={isSubmitting}
+                                          className={isSubmitting ? 'bg-gray-100' : ''}
+                                        />
                                         <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500 pointer-events-none">cm</span>
                                     </div>
                                 </FormControl>
@@ -204,7 +230,16 @@ export default function Step8Measurements() {
                                 <FormLabel>Current Weight</FormLabel>
                                 <FormControl>
                                     <div className="relative">
-                                        <Input type="number" placeholder="e.g., 70.5" step="0.1" {...field} value={field.value ?? ''} required={selectedUnit === 'metric'} />
+                                        <Input 
+                                          type="number" 
+                                          placeholder="e.g., 70.5" 
+                                          step="0.1" 
+                                          {...field} 
+                                          value={field.value ?? ''} 
+                                          required={selectedUnit === 'metric'} 
+                                          disabled={isSubmitting}
+                                          className={isSubmitting ? 'bg-gray-100' : ''}
+                                        />
                                          <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500 pointer-events-none">kg</span>
                                     </div>
                                 </FormControl>
@@ -220,7 +255,16 @@ export default function Step8Measurements() {
                                 <FormLabel>Target Weight</FormLabel>
                                 <FormControl>
                                     <div className="relative">
-                                        <Input type="number" placeholder="e.g., 65" step="0.1" {...field} value={field.value ?? ''} required={selectedUnit === 'metric'} />
+                                        <Input 
+                                          type="number" 
+                                          placeholder="e.g., 65" 
+                                          step="0.1" 
+                                          {...field} 
+                                          value={field.value ?? ''} 
+                                          required={selectedUnit === 'metric'} 
+                                          disabled={isSubmitting}
+                                          className={isSubmitting ? 'bg-gray-100' : ''}
+                                         />
                                         <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500 pointer-events-none">kg</span>
                                     </div>
                                 </FormControl>
@@ -234,7 +278,7 @@ export default function Step8Measurements() {
                 <div className={cn("space-y-4", selectedUnit !== 'imperial' && "hidden")}>
                     <FormItem>
                         <FormLabel>Height</FormLabel>
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
                             <FormField
                                 control={form.control}
                                 name="height_ft"
@@ -242,7 +286,15 @@ export default function Step8Measurements() {
                                     <FormItem className="flex-1">
                                         <FormControl>
                                             <div className="relative">
-                                                <Input type="number" placeholder="Feet" {...field} value={field.value ?? ''} required={selectedUnit === 'imperial'} />
+                                                <Input 
+                                                  type="number" 
+                                                  placeholder="Feet" 
+                                                  {...field} 
+                                                  value={field.value ?? ''} 
+                                                  required={selectedUnit === 'imperial'} 
+                                                  disabled={isSubmitting}
+                                                  className={isSubmitting ? 'bg-gray-100' : ''}
+                                                 />
                                                 <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500 pointer-events-none">ft</span>
                                             </div>
                                         </FormControl>
@@ -257,7 +309,14 @@ export default function Step8Measurements() {
                                     <FormItem className="flex-1">
                                         <FormControl>
                                             <div className="relative">
-                                                <Input type="number" placeholder="Inches" {...field} value={field.value ?? ''} />
+                                                <Input 
+                                                  type="number" 
+                                                  placeholder="Inches" 
+                                                  {...field} 
+                                                  value={field.value ?? ''} 
+                                                  disabled={isSubmitting}
+                                                  className={isSubmitting ? 'bg-gray-100' : ''}
+                                                 />
                                                 <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500 pointer-events-none">in</span>
                                             </div>
                                         </FormControl>
@@ -275,7 +334,15 @@ export default function Step8Measurements() {
                                 <FormLabel>Current Weight</FormLabel>
                                 <FormControl>
                                     <div className="relative">
-                                        <Input type="number" placeholder="e.g., 155" {...field} value={field.value ?? ''} required={selectedUnit === 'imperial'} />
+                                        <Input 
+                                          type="number" 
+                                          placeholder="e.g., 155" 
+                                          {...field} 
+                                          value={field.value ?? ''} 
+                                          required={selectedUnit === 'imperial'} 
+                                          disabled={isSubmitting}
+                                          className={isSubmitting ? 'bg-gray-100' : ''}
+                                         />
                                         <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500 pointer-events-none">lbs</span>
                                     </div>
                                 </FormControl>
@@ -291,7 +358,15 @@ export default function Step8Measurements() {
                                 <FormLabel>Target Weight</FormLabel>
                                 <FormControl>
                                     <div className="relative">
-                                        <Input type="number" placeholder="e.g., 140" {...field} value={field.value ?? ''} required={selectedUnit === 'imperial'} />
+                                        <Input 
+                                          type="number" 
+                                          placeholder="e.g., 140" 
+                                          {...field} 
+                                          value={field.value ?? ''} 
+                                          required={selectedUnit === 'imperial'} 
+                                          disabled={isSubmitting}
+                                          className={isSubmitting ? 'bg-gray-100' : ''}
+                                         />
                                         <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500 pointer-events-none">lbs</span>
                                     </div>
                                 </FormControl>
@@ -300,15 +375,6 @@ export default function Step8Measurements() {
                         )}
                     />
                 </div>
-                
-                {/* Add Continue Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full mt-6 bg-red-600 hover:bg-red-700"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting ? 'Processing...' : 'Continue'}
-                </Button>
             </form>
         </Form>
     );

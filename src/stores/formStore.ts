@@ -6,9 +6,12 @@ type FormData = {
   familiarity: 'beginner' | 'somewhat_familiar' | 'expert' | null;
   prep_time: '15_mins' | '30_mins' | '60_plus_mins' | null;
   disliked_meats: string[]; // e.g., ['pork', 'beef'] or ['none']
+  other_meat_description: string | null; // Description for 'other' meat option
   disliked_ingredients: string[]; // e.g., ['onions', 'eggs'] or ['none']
+  other_ingredient_description: string | null; // Description for 'other' ingredient option
   activity_level: 'not_active' | 'moderately_active' | 'very_active' | null;
   health_conditions: string[]; // e.g., ['diabetes'] or ['none']
+  other_health_description: string | null; // Description for 'other' health condition
   age: number | null;
   units: 'metric' | 'imperial';
   height_cm: number | null;
