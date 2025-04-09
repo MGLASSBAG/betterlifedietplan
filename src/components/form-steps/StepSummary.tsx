@@ -1,9 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useFormStore } from '@/stores/formStore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import LoadingStatus from '../LoadingStatus';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Helper function to format array data for display
 const formatArray = (arr: string[] | undefined | null): string => {
@@ -44,10 +47,12 @@ const displayMappings = {
 };
 
 const StepSummary = () => {
-  // Get the complete form data from the store
+  // Get data and actions from the store
   const formData = useFormStore((state) => state.formData);
-  // Get the handleSubmit function from MultiStepFormLayout via a central event handler
-  const handleGeneratePlan = useFormStore((state) => state.triggerSubmit);
+  const triggerSubmit = useFormStore((state) => state.triggerSubmit); 
+  const isLoading = useFormStore((state) => state.isLoading);
+  const setIsLoading = useFormStore((state) => state.setIsLoading);
+  const [error, setError] = useState<string | null>(null);
 
   const renderMeasurement = (label: string, value: number | string | null | undefined, unit: string = '') => {
     return (
@@ -57,6 +62,16 @@ const StepSummary = () => {
        </div>
      );
   };
+
+  const handleGenerateClick = () => {
+    setError(null);
+    setIsLoading(true);
+    triggerSubmit(); 
+  };
+
+  if (isLoading) {
+    return <LoadingStatus />;
+  }
 
   return (
     <div className="space-y-6">
@@ -144,10 +159,11 @@ const StepSummary = () => {
         </p>
         
         <Button 
-          onClick={handleGeneratePlan} 
+          onClick={handleGenerateClick} 
           className="w-full bg-red-600 hover:bg-red-700"
+          disabled={isLoading}
         >
-          Generate My Plan
+          {isLoading ? 'Generating...' : 'Generate My Plan'}
         </Button>
     </div>
   );

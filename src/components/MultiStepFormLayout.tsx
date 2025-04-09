@@ -23,37 +23,8 @@ import StepSummary from './form-steps/StepSummary';
 const MultiStepFormLayout = () => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
   const [redirecting, setRedirecting] = useState(false);
   
-  // Loading messages to display during plan generation
-  const loadingMessages = [
-    "Analyzing gender information...",
-    "Considering Keto familiarity level...",
-    "Factoring in meal prep time...",
-    "Noting meat preferences...",
-    "Avoiding disliked ingredients...",
-    "Adjusting for activity level...",
-    "Reviewing health conditions...",
-    "Calculating based on measurements...",
-    "Preparing your personalized plan...",
-    "Finalizing details..."
-  ];
-  
-  // Set up loading message rotation
-  useEffect(() => {
-    if (!isLoadingPlan) return;
-    
-    let currentMessageIndex = 0;
-    const interval = setInterval(() => {
-      setLoadingMessage(loadingMessages[currentMessageIndex]);
-      currentMessageIndex = (currentMessageIndex + 1) % loadingMessages.length;
-    }, 2000); // Change message every 2 seconds
-    
-    return () => clearInterval(interval);
-  }, [isLoadingPlan]);
-
   // Use the simplified store
   const currentStep = useFormStore((state) => state.currentStep);
   const totalSteps = useFormStore((state) => state.totalSteps);
@@ -62,27 +33,31 @@ const MultiStepFormLayout = () => {
   const prevStep = useFormStore((state) => state.prevStep);
   const resetForm = useFormStore((state) => state.resetForm);
   const setSubmitHandler = useFormStore((state) => state.setSubmitHandler);
+  const isLoading = useFormStore((state) => state.isLoading);
+  const setIsLoading = useFormStore((state) => state.setIsLoading);
   
   const user = useAuth();
 
   const handleSubmit = async () => {
-    setIsLoadingPlan(true);
+    setRedirecting(false);
 
     try {
       if (user && user.id) {
-        toast.loading('Saving your preferences...');
-        const result = await upsertProfileData(user.id, formData);
-        toast.dismiss();
-        if (result.success) {
-          toast.success('Preferences saved!');
-        } else {
-          toast.error('Could not save preferences. Please try again later.');
+        const savingToast = toast.loading('Saving your preferences...');
+        try {
+          const result = await upsertProfileData(user.id, formData);
+          toast.dismiss(savingToast);
+          if (result.success) {
+            toast.success('Preferences saved!');
+          } else {
+            console.warn('Could not save preferences:', result.error);
+          }
+        } catch (profileError) {
+          toast.dismiss(savingToast);
+          console.error('Error saving profile:', profileError);
         }
       }
 
-      toast.loading('Generating your plan...');
-      
-      // Using the Edge API route instead of server action
       const response = await fetch('/api/generate-plan', {
         method: 'POST',
         headers: {
@@ -91,53 +66,61 @@ const MultiStepFormLayout = () => {
         body: JSON.stringify(formData),
       });
       
+      if (!response.ok) {
+        let errorMsg = 'Failed to generate plan.';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || `API Error (${response.status})`;
+        } catch (e) { 
+          errorMsg = `API Error (${response.status})`;
+        }
+        throw new Error(errorMsg);
+      }
+      
       const planResult = await response.json();
-      toast.dismiss();
 
       if (planResult.success && planResult.plan) {
-        // Store the plan in both localStorage and sessionStorage for persistence
-        // Note: We're storing the raw JSON string for structured data
         const planData = { 
-          plan: planResult.raw || JSON.stringify(planResult.plan), 
+          plan: planResult.plan,
           timestamp: new Date().toISOString() 
         };
+        
         localStorage.setItem('generatedPlan', JSON.stringify(planData));
         sessionStorage.setItem('generatedPlan', JSON.stringify(planData));
         
-        toast.success('Plan generated successfully!');
+        toast.success('Plan generated successfully! Redirecting...');
         setRedirecting(true);
         
-        // Small timeout to allow toast to show before redirecting
         setTimeout(() => {
           router.push('/results');
         }, 800);
       } else {
-         throw new Error(planResult.error || 'Failed to generate plan content.');
+        throw new Error(planResult.error || 'API returned success=false or missing plan data.');
       }
 
     } catch (error: any) {
-      toast.dismiss();
       console.error('Error during submission or plan generation:', error);
       toast.error(error.message || 'An error occurred. Please try again.');
+      setIsLoading(false);
     } finally {
-      setIsLoadingPlan(false);
+      if (!redirecting) {
+        setIsLoading(false);
+      }
     }
   };
 
-  // Register the submit handler with the form store
   useEffect(() => {
     setSubmitHandler(handleSubmit);
     
-    // Clean up on unmount
     return () => setSubmitHandler(null);
-  }, [setSubmitHandler]); // Only when setSubmitHandler changes
+  }, [setSubmitHandler, formData, user]);
 
   return (
     <div className="container mx-auto max-w-2xl p-6 bg-white rounded-lg shadow-xl">
       <Toaster position="top-center" />
       <div className="text-center text-2xl font-bold text-red-600 mb-6">BetterLifeDietPlan</div>
 
-      {currentStep <= totalSteps && !isLoadingPlan && (
+      {currentStep <= totalSteps && !isLoading && (
         <div className="mb-6">
           <div className="flex justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Step {currentStep} of {totalSteps}</span>
@@ -164,37 +147,19 @@ const MultiStepFormLayout = () => {
         {currentStep === 9 && <StepSummary />}
       </div>
 
-      {isLoadingPlan ? (
-        <div className="mt-6 flex flex-col items-center">
-          <Button disabled className="mb-2">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {redirecting ? 'Redirecting to your results...' : 'Generating your personalized plan...'}
-          </Button>
-          <p className="text-sm text-gray-600 animate-pulse">{redirecting ? 'Almost there!' : loadingMessage}</p>
-        </div>
-      ) : (
+      {!isLoading && (
         <div className="mt-6 flex justify-between">
           {currentStep > 1 && currentStep <= totalSteps && (
             <Button
               variant="outline"
               onClick={prevStep}
               className="mr-2"
-              disabled={isPending || isLoadingPlan}
+              disabled={isPending || isLoading}
             >
               Previous
             </Button>
           )}
-          {currentStep === 1 && <div className="mr-2" />}
-          {/* Only show Generate My Plan button in bottom nav if we're NOT on the summary page */}
-          {currentStep === totalSteps && currentStep !== 9 && (
-            <Button
-              onClick={handleSubmit}
-              className="ml-auto bg-red-600 hover:bg-red-700"
-              disabled={isPending || isLoadingPlan}
-            >
-              Generate My Plan
-            </Button>
-          )}
+          {currentStep <= 1 && <div className="flex-grow" />}
         </div>
       )}
     </div>

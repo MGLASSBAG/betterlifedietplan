@@ -31,6 +31,8 @@ type FormState = {
   resetForm: () => void;
   triggerSubmit: () => void;
   setSubmitHandler: (handler: (() => void) | null) => void;
+  isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
 };
 
 const TOTAL_FORM_STEPS = 9;
@@ -64,5 +66,7 @@ export const useFormStore = create<FormState>((set, get) => ({
   },
   setSubmitHandler: (handler: (() => void) | null) => set({
     submitHandler: handler
-  })
+  }),
+  isLoading: false,
+  setIsLoading: (loading) => set({ isLoading: loading })
 }));
